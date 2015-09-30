@@ -31,6 +31,7 @@
 
 #define kDefaultTimeFormat  @"HH:mm:ss"
 #define kHourFormatReplace  @"!!!*"
+#define kMinuteFormatReplace  @"*!*!"
 #define kDefaultFireIntervalNormal  0.1
 #define kDefaultFireIntervalHighUse  0.01
 #define kDefaultTimerType MZTimerLabelTypeStopWatch
@@ -227,6 +228,11 @@
     [self updateLabel];
 }
 
+- (void)setShouldCountBeyondMMLimit:(BOOL)shouldCountBeyondMMLimit {
+    _shouldCountBeyondMMLimit = shouldCountBeyondMMLimit;
+    [self updateLabel];
+}
+
 #pragma mark - Timer Control Method
 
 
@@ -349,16 +355,26 @@
         }
     }else{
         
-        if(_shouldCountBeyondHHLimit) {
+        if(_shouldCountBeyondHHLimit || _shouldCountBeyondMMLimit) {
             //0.4.7 added---start//
             NSString *originalTimeFormat = _timeFormat;
-            NSString *beyondFormat = [_timeFormat stringByReplacingOccurrencesOfString:@"HH" withString:kHourFormatReplace];
-            beyondFormat = [beyondFormat stringByReplacingOccurrencesOfString:@"H" withString:kHourFormatReplace];
+            NSString *beyondFormat = _timeFormat;
+            if(_shouldCountBeyondHHLimit) {
+                beyondFormat = [beyondFormat stringByReplacingOccurrencesOfString:@"HH" withString:kHourFormatReplace];
+                beyondFormat = [beyondFormat stringByReplacingOccurrencesOfString:@"H" withString:kHourFormatReplace];
+            }
+            if(_shouldCountBeyondMMLimit) {
+                beyondFormat = [beyondFormat stringByReplacingOccurrencesOfString:@"mm" withString:kMinuteFormatReplace];
+                beyondFormat = [beyondFormat stringByReplacingOccurrencesOfString:@"m" withString:kMinuteFormatReplace];
+            }
             self.dateFormatter.dateFormat = beyondFormat;
             
             int hours = (_timerType == MZTimerLabelTypeStopWatch)? ([self getTimeCounted] / 3600) : ([self getTimeRemaining] / 3600);
+            int minutes = (_timerType == MZTimerLabelTypeStopWatch)? ([self getTimeCounted] / 60) : ([self getTimeRemaining] / 60);
+
             NSString *formmattedDate = [self.dateFormatter stringFromDate:timeToShow];
             NSString *beyondedDate = [formmattedDate stringByReplacingOccurrencesOfString:kHourFormatReplace withString:[NSString stringWithFormat:@"%02d",hours]];
+            beyondedDate = [beyondedDate stringByReplacingOccurrencesOfString:kMinuteFormatReplace withString:[NSString stringWithFormat:@"%02d",minutes]];
             
             self.timeLabel.text = beyondedDate;
             self.dateFormatter.dateFormat = originalTimeFormat;
